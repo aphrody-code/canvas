@@ -1,6 +1,6 @@
 {
   "name": "@aphrody-code/canvas",
-  "version": "0.1.99-fork.1",
+  "version": "0.1.99-fork.4",
   "description": "Canvas for Node.js with skia backend (aphrody-code fork — published to GitHub Packages)",
   "main": "index.js",
   "repository": {
@@ -156,5 +156,8 @@
     "skia-canvas": {
       "built": true
     }
+  },
+  "optionalDependencies": {
+    "@aphrody-code/canvas-linux-x64-gnu": "0.1.99-fork.4"
   }
 }
