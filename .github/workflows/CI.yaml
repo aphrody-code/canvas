@@ -47,7 +47,7 @@ jobs:
       - name: Download skia binary
         run: |
           git config --global --add safe.directory $(pwd)
-          node ./scripts/release-skia-binary.mjs --download
+          bun ./scripts/release-skia-binary.mjs --download
 
       - name: 'Lint JS/TS'
         run: bun lint
@@ -196,7 +196,7 @@ jobs:
         if: ${{ matrix.settings.setup }}
 
       - name: Download skia binary
-        run: node ./scripts/release-skia-binary.mjs --download --target=${{ matrix.settings.downloadTarget }}
+        run: bun ./scripts/release-skia-binary.mjs --download --target=${{ matrix.settings.downloadTarget }}
 
       - name: 'Build'
         if: ${{ !matrix.settings.docker }}
@@ -264,7 +264,7 @@ jobs:
         run: |
           git config --global --add safe.directory "$(pwd)"
           git config --global --add safe.directory "$(pwd)/skia"
-          node ./scripts/release-skia-binary.mjs --download --target=armv7-unknown-linux-gnueabihf
+          bun ./scripts/release-skia-binary.mjs --download --target=armv7-unknown-linux-gnueabihf
 
       - name: Build
         run: |
@@ -333,7 +333,7 @@ jobs:
 
       - name: Download icudtl.dat
         if: matrix.settings.host == 'windows-latest'
-        run: node ./scripts/release-skia-binary.mjs --download-icu
+        run: bun ./scripts/release-skia-binary.mjs --download-icu
 
       - name: Test bindings
         run: bun test:ci
@@ -387,7 +387,7 @@ jobs:
           path: .
 
       - name: Download icudtl.dat
-        run: node ./scripts/release-skia-binary.mjs --download-icu
+        run: bun ./scripts/release-skia-binary.mjs --download-icu
 
       - name: Test bindings
         run: bun test:ci
@@ -607,6 +607,11 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install
         uses: ./.github/actions/setup-rust
         with:
@@ -619,7 +624,7 @@ jobs:
         run: brew install llvm
 
       - name: Download skia binary
-        run: node ./scripts/release-skia-binary.mjs --download
+        run: bun ./scripts/release-skia-binary.mjs --download
 
       - name: Test
         run: |
@@ -653,7 +658,7 @@ jobs:
       - name: Download skia binary
         run: |
           git config --global --add safe.directory $(pwd)
-          node ./scripts/release-skia-binary.mjs --download
+          bun ./scripts/release-skia-binary.mjs --download
 
       - name: 'Build'
         run: bun run build
@@ -698,7 +703,7 @@ jobs:
         run: bun run artifacts
 
       - name: Download ICU for Windows
-        run: node ./scripts/release-skia-binary.mjs --download-icu
+        run: bun ./scripts/release-skia-binary.mjs --download-icu
 
       - name: List packages
         run: ls -R ./npm
