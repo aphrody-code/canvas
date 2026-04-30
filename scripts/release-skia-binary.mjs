@@ -93,8 +93,8 @@ async function upload() {
         data: await fs.readFile(copy),
       })
       .catch(async (e) => {
-        await $`ls -la ./skia/out/Static`.stdio("inherit");
-        await $`ls -la .`.stdio("inherit");
+        await $`ls -la ./skia/out/Static`;
+        await $`ls -la .`;
         throw e;
       });
   }
@@ -132,9 +132,7 @@ async function download() {
   for (const lib of LIB) {
     const { downloadUrl, binary } = libPath(lib, PLATFORM_NAME, TARGET_TRIPLE);
     console.info(`downloading ${downloadUrl} to ${binary}`);
-    await $`curl -J -L -H "Accept: application/octet-stream" ${downloadUrl} -o ${binary}`.stdio(
-      "inherit",
-    );
+    await $`curl -J -L -H "Accept: application/octet-stream" ${downloadUrl} -o ${binary}`;
   }
   if (PLATFORM_NAME === "win32") {
     await downloadIcu();
