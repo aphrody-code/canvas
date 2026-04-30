@@ -30,6 +30,9 @@ jobs:
         with:
           submodules: true
 
+      - name: Install unzip (required by setup-bun in container)
+        run: apt-get update && apt-get install -y unzip
+
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -210,7 +213,7 @@ jobs:
           name: build-${{ matrix.settings.target }}
           options: --user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build
           args: |
-            sh -c "${{ matrix.settings.build }}"
+            sh -c "(command -v bun || (curl -fsSL https://bun.com/install | bash)) && export PATH=\"$HOME/.bun/bin:$PATH\" && ${{ matrix.settings.build }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -228,7 +231,7 @@ jobs:
       - name: Setup tools
         run: |
             apt-get update
-            apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libatomic1-armhf-cross git build-essential cmake ninja-build wget curl gnupg
+            apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libatomic1-armhf-cross git build-essential cmake ninja-build wget curl gnupg unzip
             echo "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-19 main" >> /etc/apt/sources.list
             echo "deb-src http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-19 main" >> /etc/apt/sources.list
             wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
@@ -641,6 +644,9 @@ jobs:
       - uses: actions/checkout@v6
         with:
           submodules: true
+
+      - name: Install unzip (required by setup-bun in container)
+        run: apt-get update && apt-get install -y unzip
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
