@@ -1,3 +1,4 @@
+import { $ } from "bun";
 import { join } from "node:path";
 
 export const OWNER = "Brooooooklyn";

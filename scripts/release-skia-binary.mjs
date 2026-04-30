@@ -1,3 +1,4 @@
+import { $ } from "bun";
 import { promises as fs, copyFileSync, statSync } from "node:fs";
 import { platform } from "node:os";
 import { parse, join } from "node:path";
