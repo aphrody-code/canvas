@@ -3,7 +3,6 @@ name: CI
 env:
   DEBUG: 'napi:*'
   APP_NAME: 'skia'
-  MACOSX_DEPLOYMENT_TARGET: '10.13'
 
 on:
   push:
@@ -41,7 +40,7 @@ jobs:
       - name: Install
         uses: ./.github/actions/setup-rust
         with:
-          targets: x86_64-apple-darwin
+          targets: x86_64-unknown-linux-gnu
           components: clippy, rustfmt
 
       - name: Install dependencies
@@ -61,99 +60,9 @@ jobs:
       - name: Clippy
         run: cargo clippy
 
-  lint-cpp:
-    name: Lint C++ Code
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install clang-format
-        run: brew install clang-format
-
-      - name: Format C++ Code
-        run: clang-format --Werror --style=Chromium --fail-on-incomplete-format --dry-run skia-c/*
-
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: macos-latest
-            target: 'x86_64-apple-darwin'
-            build: |
-              rustc --print target-cpus
-              clang --version
-              bun run build --target x86_64-apple-darwin
-            downloadTarget: ''
-          - host: windows-latest
-            setup: |
-              choco upgrade llvm
-            build: bun run build --target x86_64-pc-windows-msvc
-            target: 'x86_64-pc-windows-msvc'
-            downloadTarget: ''
-          - host: windows-latest
-            setup: |
-              choco upgrade llvm
-            build: bun run build --target aarch64-pc-windows-msvc
-            target: 'aarch64-pc-windows-msvc'
-            downloadTarget: 'aarch64-pc-windows-msvc'
-          - host: ubuntu-latest
-            target: 'x86_64-unknown-linux-gnu'
-            downloadTarget: ''
-            docker: ghcr.io/brooooooklyn/canvas/ubuntu-builder:jammy
-            build: >-
-              rustup install &&
-              rustup target add x86_64-unknown-linux-gnu &&
-              bun run build --target x86_64-unknown-linux-gnu
-          - host: ubuntu-latest
-            downloadTarget: 'x86_64-unknown-linux-musl'
-            target: 'x86_64-unknown-linux-musl'
-            build: bun run build --target x86_64-unknown-linux-musl -x
-          - host: macos-latest
-            downloadTarget: 'aarch64-apple-darwin'
-            target: 'aarch64-apple-darwin'
-            build: |
-              export MACOSX_DEPLOYMENT_TARGET='11.0'
-              clang --version
-              bun run build --target aarch64-apple-darwin
-          - host: ubuntu-latest
-            downloadTarget: 'aarch64-unknown-linux-gnu'
-            target: 'aarch64-unknown-linux-gnu'
-            docker: ghcr.io/brooooooklyn/canvas/ubuntu-builder:jammy-aarch64
-            build: >-
-              set -e &&
-              rustup install &&
-              rustup target add aarch64-unknown-linux-gnu &&
-              bun run build --target aarch64-unknown-linux-gnu
-          - host: ubuntu-24.04-arm
-            target: 'aarch64-unknown-linux-musl'
-            downloadTarget: 'aarch64-unknown-linux-musl'
-            build: bun run build --target aarch64-unknown-linux-musl -x
-          - host: ubuntu-latest
-            target: 'aarch64-linux-android'
-            downloadTarget: 'aarch64-linux-android'
-            build: |
-              export CLANG_VERSION=`ls ${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang | sed 's/ *$//g'`
-              touch "${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/${CLANG_VERSION}/lib/linux/aarch64/libgcc.a"
-              chmod 777 "${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/${CLANG_VERSION}/lib/linux/aarch64/libgcc.a"
-              echo "INPUT(-lunwind)" > "${ANDROID_NDK_LATEST_HOME}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/${CLANG_VERSION}/lib/linux/aarch64/libgcc.a"
-              export LDFLAGS="-fuse-ld=lld"
-              export CC=aarch64-linux-android24-clang
-              export CXX=aarch64-linux-android24-clang++
-              export CMAKE_TOOLCHAIN_FILE_aarch64_linux_android="$(pwd)/cmake/android-determine.cmake"
-              bun run build --target aarch64-linux-android
-          - host: ubuntu-latest
-            target: 'riscv64gc-unknown-linux-gnu'
-            downloadTarget: 'riscv64gc-unknown-linux-gnu'
-            build: |
-              sudo apt-get update
-              sudo apt-get install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu -y
-              export CC=riscv64-linux-gnu-gcc
-              export CXX=riscv64-linux-gnu-g++
-              bun run build --target riscv64gc-unknown-linux-gnu
-
-    name: stable - ${{ matrix.settings.target }} - node@24
-    runs-on: ${{ matrix.settings.host }}
+    name: stable - x86_64-unknown-linux-gnu - node@24
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
@@ -165,242 +74,31 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Set env
-        if: matrix.settings.host == 'windows-latest'
-        run: echo "C:\\msys64\\mingw64\\bin" >> $GITHUB_PATH
-        shell: bash
-
-      - uses: mlugg/setup-zig@v2
-        if: ${{ contains(matrix.settings.target, 'musl') }}
-        with:
-          version: 0.15.1
-      - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@v2
-        if: ${{ contains(matrix.settings.target, 'musl') }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        with:
-          tool: cargo-zigbuild
-
-      - name: Setup nasm
-        uses: ilammy/setup-nasm@v1
-        if: ${{ matrix.settings.host == 'windows-latest' || matrix.settings.target == 'x86_64-unknown-linux-musl' || matrix.settings.target == 'x86_64-apple-darwin' }}
-
       - name: Install
         uses: ./.github/actions/setup-rust
         with:
-          targets: ${{ matrix.settings.target }}
+          targets: x86_64-unknown-linux-gnu
 
       - name: Install dependencies
         run: bun install --immutable --mode=skip-build
 
-      - name: Setup toolchain
-        run: ${{ matrix.settings.setup }}
-        if: ${{ matrix.settings.setup }}
-
       - name: Download skia binary
-        run: bun ./scripts/release-skia-binary.mjs --download --target=${{ matrix.settings.downloadTarget }}
-
-      - name: 'Build'
-        if: ${{ !matrix.settings.docker }}
-        run: ${{ matrix.settings.build }}
+        run: bun ./scripts/release-skia-binary.mjs --download
 
       - name: Build in docker
         uses: tj-actions/docker-run@v2
-        if: ${{ matrix.settings.docker }}
         with:
-          image: ${{ matrix.settings.docker }}
-          name: build-${{ matrix.settings.target }}
+          image: ghcr.io/brooooooklyn/canvas/ubuntu-builder:jammy
+          name: build-x86_64-unknown-linux-gnu
           options: --user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build
           args: |
-            sh -c "(command -v bun || (curl -fsSL https://bun.com/install | bash)) && export PATH=\"$HOME/.bun/bin:$PATH\" && ${{ matrix.settings.build }}"
+            sh -c "(command -v bun || (curl -fsSL https://bun.com/install | bash)) && export PATH=\"$HOME/.bun/bin:$PATH\" && rustup install && rustup target add x86_64-unknown-linux-gnu && bun run build --target x86_64-unknown-linux-gnu"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: bindings-${{ matrix.settings.target }}
+          name: bindings-x86_64-unknown-linux-gnu
           path: ${{ env.APP_NAME }}.*.node
-
-  build-armv7-linux-gnueabihf:
-    name: Build armv7-unknown-linux-gnueabihf
-    runs-on: ubuntu-latest
-    container:
-      image: debian:bullseye-20260421
-
-    steps:
-      - name: Setup tools
-        run: |
-            apt-get update
-            apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libatomic1-armhf-cross git build-essential cmake ninja-build wget curl gnupg unzip
-            echo "deb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-19 main" >> /etc/apt/sources.list
-            echo "deb-src http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-19 main" >> /etc/apt/sources.list
-            wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
-            apt-get update
-            apt-get install -y clang-19
-            ln -s /usr/bin/clang-19 /usr/bin/clang
-            ln -s /usr/bin/clang++-19 /usr/bin/clang++
-            curl -fsSL https://bun.sh/install | bash
-            ln -s /root/.bun/bin/bun /usr/local/bin/bun
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup cmake
-        uses: jwlawson/actions-setup-cmake@v2
-        with:
-          cmake-version: '3.x'
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install
-        uses: ./.github/actions/setup-rust
-        with:
-          targets: 'armv7-unknown-linux-gnueabihf'
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Download skia binary
-        run: |
-          git config --global --add safe.directory "$(pwd)"
-          git config --global --add safe.directory "$(pwd)/skia"
-          bun ./scripts/release-skia-binary.mjs --download --target=armv7-unknown-linux-gnueabihf
-
-      - name: Build
-        run: |
-          export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
-          bun run build --target armv7-unknown-linux-gnueabihf
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: bindings-armv7-unknown-linux-gnueabihf
-          path: ${{ env.APP_NAME }}.*.node
-
-  test-macOS-windows-binding:
-    name: Test bindings on ${{ matrix.settings.target }} - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        settings:
-          - host: macos-latest
-            target: 'x86_64-apple-darwin'
-          - host: macos-latest
-            target: 'aarch64-apple-darwin'
-          - host: windows-latest
-            target: 'x86_64-pc-windows-msvc'
-        node: ['22', '24']
-    runs-on: ${{ matrix.settings.host }}
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Download Apple Emoji font
-        uses: robinraju/release-downloader@v1
-        with:
-          repository: 'PoomSmart/EmojiLibrary'
-          fileName: AppleColorEmoji@2x.ttf
-          tag: '0.15.4'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          out-file-path: __test__/fonts/
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        if: startsWith(matrix.settings.target, 'x86_64')
-        with:
-          bun-version: latest
-          architecture: 'x64'
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        if: startsWith(matrix.settings.target, 'aarch64')
-        with:
-          bun-version: latest
-          architecture: 'arm64'
-
-      - name: Install dependencies
-        run: bun install --immutable
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-${{ matrix.settings.target }}
-          path: .
-
-      - name: Download icudtl.dat
-        if: matrix.settings.host == 'windows-latest'
-        run: bun ./scripts/release-skia-binary.mjs --download-icu
-
-      - name: Test bindings
-        run: bun test:ci
-        env:
-          RUN_STRESS_TESTS: 'true'
-
-      - name: Test failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-images-${{ matrix.settings.target }}-${{ matrix.node }}
-          path: __test__/failure/**
-
-  test-windows-arm64-binding:
-    name: Test bindings on Windows ARM64 - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22', '24']
-    runs-on: windows-11-arm
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Download Apple Emoji font
-        uses: robinraju/release-downloader@v1
-        with:
-          repository: 'PoomSmart/EmojiLibrary'
-          fileName: AppleColorEmoji@2x.ttf
-          tag: '0.15.4'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          out-file-path: __test__/fonts/
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-          architecture: 'arm64'
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-aarch64-pc-windows-msvc
-          path: .
-
-      - name: Download icudtl.dat
-        run: bun ./scripts/release-skia-binary.mjs --download-icu
-
-      - name: Test bindings
-        run: bun test:ci
-
-      - name: Test failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-images-aarch64-pc-windows-msvc-${{ matrix.node }}
-          path: __test__/failure/**
 
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
@@ -452,188 +150,6 @@ jobs:
           name: failure-images-x86_64-unknown-linux-gnu-${{ matrix.node }}
           path: __test__/failure/**
 
-  test-linux-x64-musl-binding:
-    name: Test bindings on x86_64-unknown-linux-musl - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22', '24']
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Download Apple Emoji font
-        uses: robinraju/release-downloader@v1
-        with:
-          repository: 'PoomSmart/EmojiLibrary'
-          fileName: AppleColorEmoji@2x.ttf
-          tag: '0.15.4'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          out-file-path: __test__/fonts/
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-x86_64-unknown-linux-musl
-          path: .
-
-      - name: List packages
-        run: ls -R .
-        shell: bash
-
-      - name: Test bindings
-        run: docker run --rm -v $(pwd):/canvas -w /canvas oven/bun:alpine bun run test:ci
-
-      - name: Test failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-images-x86_64-unknown-linux-musl-${{ matrix.node }}
-          path: __test__/failure/**
-
-  test-linux-aarch64-gnu-binding:
-    name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        node: ['22', '24']
-    runs-on: ubuntu-24.04-arm
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Download Apple Emoji font
-        uses: robinraju/release-downloader@v1
-        with:
-          repository: 'PoomSmart/EmojiLibrary'
-          tag: '0.15.4'
-          fileName: AppleColorEmoji@2x.ttf
-          token: ${{ secrets.GITHUB_TOKEN }}
-          out-file-path: __test__/fonts/
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-aarch64-unknown-linux-gnu
-          path: .
-
-      - name: List packages
-        run: ls -R .
-        shell: bash
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Setup and run tests
-        uses: tj-actions/docker-run@v2
-        with:
-          image: oven/bun:latest
-          name: test-aarch64-${{ matrix.node }}
-          options: '--platform linux/arm64 -v ${{ github.workspace }}:/skia -w /skia'
-          args: |
-            sh -c "set -e && bun run test:ci && ls -la"
-
-      - name: Test failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-images-aarch64-unknown-linux-gnu-${{ matrix.node }}
-          path: __test__/failure/**
-
-  test-linux-aarch64-musl-binding:
-    name: Test bindings on aarch64-unknown-linux-musl - node@lts
-    needs:
-      - build
-
-    runs-on: ubuntu-24.04-arm
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Download Apple Emoji font
-        uses: robinraju/release-downloader@v1
-        with:
-          repository: 'PoomSmart/EmojiLibrary'
-          tag: '0.15.4'
-          fileName: AppleColorEmoji@2x.ttf
-          token: ${{ secrets.GITHUB_TOKEN }}
-          out-file-path: __test__/fonts/
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: bindings-aarch64-unknown-linux-musl
-          path: .
-
-      - name: List packages
-        run: ls -R .
-        shell: bash
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Setup and run tests
-        uses: tj-actions/docker-run@v2
-        with:
-          image: oven/bun:alpine
-          name: test-alpine-musl
-          options: '--platform linux/arm64 -v ${{ github.workspace }}:/skia -w /skia'
-          args: |
-            sh -c "set -e && bun run test:ci"
-
-      - name: Test failed
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: failure-images-aarch64-unknown-linux-musl-lts
-          path: __test__/failure/**
-
-  rust-test:
-    name: stable - macOS - cargo - test
-    runs-on: macos-latest
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: true
-
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install
-        uses: ./.github/actions/setup-rust
-        with:
-          targets: aarch64-apple-darwin
-
-      - name: Install dependencies
-        run: bun install --immutable --mode=skip-build
-
-      - name: Install llvm
-        run: brew install llvm
-
-      - name: Download skia binary
-        run: bun ./scripts/release-skia-binary.mjs --download
-
-      - name: Test
-        run: |
-          clang --version
-          cargo test -- --nocapture
-
   bench:
     name: Bench
     runs-on: ubuntu-latest
@@ -680,12 +196,6 @@ jobs:
       id-token: write
     needs:
       - test-linux-x64-gnu-binding
-      - test-linux-x64-musl-binding
-      - test-linux-aarch64-gnu-binding
-      - test-linux-aarch64-musl-binding
-      - build-armv7-linux-gnueabihf
-      - test-macOS-windows-binding
-      - test-windows-arm64-binding
 
     steps:
       - uses: actions/checkout@v6
@@ -708,16 +218,13 @@ jobs:
       - name: Move artifacts
         run: bun run artifacts
 
-      - name: Download ICU for Windows
-        run: bun ./scripts/release-skia-binary.mjs --download-icu
-
       - name: List packages
         run: ls -R ./npm
         shell: bash
 
       - name: Setup GitHub Packages auth
         run: |
-          # Le `bun publish` lit `.npmrc` pour résoudre l'auth du registry GH Packages.
+          # `bun publish` lit `.npmrc` pour résoudre l'auth du registry GH Packages.
           # Le scope @aphrody-code est routé vers npm.pkg.github.com, le token vient
           # du GITHUB_TOKEN auto-fourni par Actions (avec permission packages: write).
           cat > .npmrc <<EOF
@@ -730,17 +237,12 @@ jobs:
 
       - name: Publish
         run: |
-          # Détecte un tag de release "X.Y.Z" ou "X.Y.Z-prerelease" dans le dernier commit
           if git log -1 --pretty=%B | grep -qE "^[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9.]+)?$";
           then
-            # Le `prepublishOnly` (`napi prepublish -t npm`) recopie le binaire
-            # téléchargé depuis les artifacts dans chaque npm/<target>/, puis
-            # `bun publish` itère sur eux + le main package.
             bun publish --access public
           else
             echo "Not a release commit, skipping publish"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Permet à `bun publish` de re-authentifier au besoin
           NPM_CONFIG_TOKEN: ${{ secrets.GITHUB_TOKEN }}
