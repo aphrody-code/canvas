@@ -1,6 +1,6 @@
 {
-	"name": "@aphrody-code/canvas-linux-x64-gnu",
-	"version": "0.1.99-fork.4",
+	"name": "@aphrody/canvas-linux-x64-gnu",
+	"version": "0.1.99",
 	"os": [
 		"linux"
 	],

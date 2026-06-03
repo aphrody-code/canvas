@@ -1,7 +1,7 @@
 {
-  "name": "@aphrody-code/canvas-e2e-webpack",
+  "name": "@aphrody/canvas-e2e-webpack",
   "version": "1.0.0",
-  "description": "E2E test for @aphrody-code/canvas with webpack bundling",
+  "description": "E2E test for @aphrody/canvas with webpack bundling",
   "private": true,
   "main": "index.js",
   "scripts": {
@@ -15,10 +15,10 @@
     "webpack-cli": "^7.0.0"
   },
   "dependencies": {
-    "@aphrody-code/canvas": "workspace:*",
+    "@aphrody/canvas": "workspace:*",
     "node-loader": "^2.1.0"
   },
   "resolutions": {
-    "@aphrody-code/canvas": "workspace:*"
+    "@aphrody/canvas": "workspace:*"
   }
 }
