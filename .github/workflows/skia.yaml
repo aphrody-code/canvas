@@ -227,7 +227,7 @@ jobs:
         with:
           version: 0.15.1
       - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.5
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
@@ -309,7 +309,7 @@ jobs:
         with:
           version: 0.15.1
       - name: Install cargo-zigbuild
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.5
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
